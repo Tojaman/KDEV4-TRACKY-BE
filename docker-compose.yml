@@ -14,24 +14,45 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 30s
       timeout: 10s
       retries: 3
-  mysql:
-    image: mysql:8.0
-    container_name: tracky-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"   # Remote‑Write 수신 활성화
     ports:
-      - "3307:3306"
+      - "9090:9090"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=1234
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  k6:
+    image: grafana/k6:latest
+    container_name: k6
+    entrypoint: ["k6"]
+    # 스크립트 실행 시 Remote‑Write로 Prometheus에 전송
+    command: [
+      "run", "/scripts/script.js",
+      "--out", "experimental-prometheus-rw=http://prometheus:9090/api/v1/write"
+    ]
+    volumes:
+      - ./scripts:/scripts
+
 
 volumes:
   rabbitmq_data:
-  mysql_data:
+  grafana_data:

@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s
+
+# Remote-Write 수신만 사용하므로 scrape_configs는 비워두거나
+# 자체 메트릭만 수집해도 무방
+scrape_configs:
+  - job_name: 'k6'
+    static_configs:
+      - targets: ['k6:9090']
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
