@@ -7,8 +7,8 @@ export const options = {
     scenarios: {
         load_test: {
         executor: 'constant-vus',
-        vus: 1000,           // 동시 1000명
-        duration: '30s',     // 30초 동안 실행
+        vus: 10000,           // 동시 1000명
+        duration: '3s',     // 30초 동안 실행
         },
     },
     thresholds: {
@@ -21,13 +21,14 @@ export const options = {
 
 export default function () {
     const url = 'http://host.docker.internal:8082/hub/car/cycle';
+    const server_url = 'https://api.tracky.kr:777/hub/car/cycle';
     const payload = JSON.stringify(requestBody);  // 직렬화
     const headers = {
         'Content-Type': 'application/json',
     };
 
     // 요청을 보낼 URL
-    const res = http.post(url, payload, { headers });
+    const res = http.post(server_url, payload, { headers });
     // HTTP 200 여부 체크
     check(res, { 'status is 200': (r) => r.status === 200 });
 }
