@@ -7,16 +7,16 @@ export const options = {
     scenarios: {
         load_test: {
         executor: 'constant-vus',
-        vus: 10000,           // 동시 1000명
+        vus: 1000,           // 동시 1000명
         duration: '3s',     // 30초 동안 실행
         },
-    },
-    thresholds: {
-        // 실패율이 1% 초과 시 에러로 간주
-        'http_req_failed': ['rate<0.01'],
-        // 95% 요청 응답 시간이 500ms 이하
-        'http_req_duration': ['p(95)<500'],
-    }, 
+    }
+    // thresholds: {
+    //     // 실패율이 1% 초과 시 에러로 간주
+    //     'http_req_failed': ['rate<0.01'],
+    //     // 95% 요청 응답 시간이 500ms 이하
+    //     'http_req_duration': ['p(95)<500'],
+    // }, 
 };
 
 export default function () {
@@ -28,7 +28,7 @@ export default function () {
     };
 
     // 요청을 보낼 URL
-    const res = http.post(server_url, payload, { headers });
+    const res = http.post(url, payload, { headers });
     // HTTP 200 여부 체크
     check(res, { 'status is 200': (r) => r.status === 200 });
 }

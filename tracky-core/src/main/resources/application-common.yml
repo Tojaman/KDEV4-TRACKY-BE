@@ -39,15 +39,9 @@ management:
       exposure:
         include:
           - "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-    distribution:
-      percentiles-histogram:
-        enabled: true
-      http.server.requests: # 응답 시간 히스토그램 활성화
-        enabled: true
+  endpoint:
+    prometheus:
+      enabled: true
 
 logging:
   level:

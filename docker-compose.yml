@@ -23,8 +23,9 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--web.enable-remote-write-receiver"   # Remote‑Write 수신 활성화
+      - --web.enable-remote-write-receiver
+      - --enable-feature=native-histograms
+      - --config.file=/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     volumes:
@@ -39,19 +40,25 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=1234
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/dashboards
+    depends_on:
+      - prometheus
 
   k6:
     image: grafana/k6:latest
     container_name: k6
     entrypoint: ["k6"]
-    # 스크립트 실행 시 Remote‑Write로 Prometheus에 전송
-    command: [
-      "run", "/scripts/script.js",
-      "--out", "experimental-prometheus-rw=http://prometheus:9090/api/v1/write"
-    ]
+    command: run -o experimental-prometheus-rw /scripts/script.js
+    environment:
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./scripts:/scripts
-
+    depends_on:
+      - prometheus
 
 volumes:
   rabbitmq_data:
