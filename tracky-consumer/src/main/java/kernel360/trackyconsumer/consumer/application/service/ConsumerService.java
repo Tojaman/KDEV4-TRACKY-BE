@@ -103,6 +103,7 @@ public class ConsumerService {
 				count++;
 			}
 		}
+		log.info("이상 거리 제거 개수 : {}", count);
 		return count;
 	}
 

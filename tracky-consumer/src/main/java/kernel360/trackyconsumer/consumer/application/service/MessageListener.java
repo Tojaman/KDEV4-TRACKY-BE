@@ -40,7 +40,13 @@ public class MessageListener {
 	public void receiveCarMessages(List<GpsHistoryMessage> messages) {
 		log.info("GPS 메시지 배치 수신: {} 개", messages.size());
 
-		for (GpsHistoryMessage message : messages)
-			consumerService.receiveCycleInfo(message);
+		for (GpsHistoryMessage message : messages) {
+			try {
+				log.info("GPS 메시지 수신: {}", message.toString());
+				consumerService.receiveCycleInfo(message);
+			} catch (Exception e) {
+				log.error("GPS 메시지 처리 중 오류 발생: {}", e.getMessage());
+			}
+		}
 	}
 }
