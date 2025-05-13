@@ -1,7 +1,5 @@
 package kernel360.trackyconsumer.consumer.application.service;
 
-import java.util.List;
-
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -36,17 +34,35 @@ public class MessageListener {
 	}
 
 	// GPS 정보 처리 큐
-	@RabbitListener(queues = "gps-queue", containerFactory = "batchRabbitListenerContainerFactory")
-	public void receiveCarMessages(List<GpsHistoryMessage> messages) {
-		log.info("GPS 메시지 배치 수신: {} 개", messages.size());
+	// @RabbitListener(queues = "gps-queue", containerFactory = "batchRabbitListenerContainerFactory")
+	// public void receiveCarMessages(List<GpsHistoryMessage> messages) {
+	// 	log.info("GPS 메시지 수신");
+	//
+	// 	long start = System.currentTimeMillis();
+	// 	for (GpsHistoryMessage message : messages) {
+	// 		try {
+	// 			consumerService.receiveCycleInfo(message);
+	// 		} catch (Exception e) {
+	// 			log.error("GPS 메시지 처리 중 오류 발생: {}", e.getMessage());
+	// 		}
+	// 	}
+	// 	long end = System.currentTimeMillis();
+	//
+	// 	log.info("GPS 메시지 처리 완료 | {}ms 소요", end - start);
+	// }
 
-		for (GpsHistoryMessage message : messages) {
-			try {
-				log.info("GPS 메시지 수신: {}", message.toString());
-				consumerService.receiveCycleInfo(message);
-			} catch (Exception e) {
-				log.error("GPS 메시지 처리 중 오류 발생: {}", e.getMessage());
-			}
+	@RabbitListener(queues = "gps-queue", containerFactory = "batchRabbitListenerContainerFactory")
+	public void receiveCarMessages(GpsHistoryMessage message) {
+		log.info("GPS 메시지 수신");
+
+		long start = System.currentTimeMillis();
+		try {
+			consumerService.receiveCycleInfo(message);
+		} catch (Exception e) {
+			log.error("GPS 메시지 처리 중 오류 발생: {}", e.getMessage());
 		}
+		long end = System.currentTimeMillis();
+
+		log.info("GPS 메시지 처리 완료 | {}ms 소요", end - start);
 	}
 }

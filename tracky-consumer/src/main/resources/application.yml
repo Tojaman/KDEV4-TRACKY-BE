@@ -5,15 +5,22 @@ spring:
       - classpath:application-rabbitmq.yml
   application:
     name: tracky-consumer
+  jpa:
+    properties:
+      hibernate:
+#        jdbc:
+#          batch_size: 60
+#        order_inserts: true
+#        order_updates: true
 
 rabbitmq:
   batch:
     # 배치 리스너 관련 설정
     default-requeue-rejected: false
-    enabled: true       # 배치 리스너 활성화
-    size: 100            # 배치 크기 (10개 메시지)
-    timeout: 5000      # 타임아웃(ms)
-    consumer-batch-enabled: true  # 내부 배치 처리 기능 활성화
+    enabled: false       # 배치 리스너 활성화
+#    size: 10            # 배치 크기 (10개 메시지)
+#    timeout: 5000      # 타임아웃(ms)
+#    consumer-batch-enabled: true  # 내부 배치 처리 기능 활성화
 
 server:
   port: 8083

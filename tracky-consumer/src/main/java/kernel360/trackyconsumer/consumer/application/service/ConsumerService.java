@@ -8,6 +8,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import kernel360.trackyconsumer.consumer.application.dto.request.CarOnOffRequest;
 import kernel360.trackyconsumer.consumer.application.dto.request.CycleGpsRequest;
 import kernel360.trackyconsumer.consumer.application.dto.request.GpsHistoryMessage;
@@ -41,15 +42,16 @@ public class ConsumerService {
 	// @Async("taskExecutor")
 	@Transactional
 	public void receiveCycleInfo(GpsHistoryMessage request) {
-
 		List<CycleGpsRequest> cycleGpsRequestList = request.cList();
-		CarEntity car = carProvider.findByMdn(request.mdn());
+
+		CarEntity car = carProvider.findByMdn(request.mdn()); // 캐싱 도입
 		DriveEntity drive = driveProvider.getDrive(car, request.oTime());
 
 		drive.skipCount(removeOverDistance(cycleGpsRequestList));
 
-		if (!cycleGpsRequestList.isEmpty())
+		if (!cycleGpsRequestList.isEmpty()) {
 			processTimeDistance(cycleGpsRequestList, car);
+		}
 
 		List<GpsHistoryEntity> gpsHistories = toGpsHistoryList(cycleGpsRequestList, drive);
 		gpsHistoryProvider.saveAll(gpsHistories);
@@ -103,7 +105,6 @@ public class ConsumerService {
 				count++;
 			}
 		}
-		log.info("이상 거리 제거 개수 : {}", count);
 		return count;
 	}
 
@@ -136,7 +137,6 @@ public class ConsumerService {
 			seconds++;
 		}
 
-		log.info("세컨트스 : {}", seconds);
 		if (distance > 0.0)
 			saveTimeDistance(prevDate, prevHour, car, distance, seconds);
 	}

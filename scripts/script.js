@@ -1,15 +1,15 @@
 import http from 'k6/http';
-import { check } from 'k6';
-import { requestBodyList } from './cycleRequest.js';
+import {check} from 'k6';
+import {requestBodyList} from './cycleRequest.js';
 
 export const options = {
     // constant-vus: 지정한 VU(가상 사용자)를 동시에 유지
     scenarios: {
         load_test: {
-        executor: 'per-vu-iterations',
-        vus: 450,           // 1500명의 가상 사용자
-        iterations: 33,    // 각 VU당 1번 실행
-        maxDuration: '600s',     // 최대 실행 시간
+            executor: 'per-vu-iterations',
+            vus: 50,           // 1500명의 가상 사용자
+            iterations: 300,    // 각 VU당 1번 실행
+            maxDuration: '600s',     // 최대 실행 시간
         },
     },
     // 시스템 메모리 제한 설정 (필요에 따라 조정)
@@ -19,7 +19,7 @@ export const options = {
         'http_req_failed': ['rate<0.01'],
         // 95% 요청 응답 시간이 500ms 이하
         'http_req_duration': ['p(95)<500'],
-    }, 
+    },
 };
 
 export default function () {
@@ -33,6 +33,6 @@ export default function () {
     // __VU는 1부터 시작하므로 -1을 해줌
     const index = (__VU - 1) % requestBodyList.length;
     const payload = JSON.stringify(requestBodyList[index]);
-    const res = http.post(url, payload, { headers });
-    check(res, { 'status is 200': (r) => r.status === 200 });
+    const res = http.post(url, payload, {headers});
+    check(res, {'status is 200': (r) => r.status === 200});
 }

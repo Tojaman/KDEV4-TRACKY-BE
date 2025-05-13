@@ -26,15 +26,15 @@ public class RabbitMQConfig {
 		ConnectionFactory connectionFactory) {
 		SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
 		factory.setConnectionFactory(connectionFactory);
-		factory.setBatchSize(properties.getBatch().getSize());
-		factory.setReceiveTimeout(properties.getBatch().getTimeout());
-		factory.setBatchListener(properties.getBatch().isEnabled());
-		factory.setConsumerBatchEnabled(properties.getBatch().isConsumerBatchEnabled());
+		// factory.setBatchSize(properties.getBatch().getSize());
+		// factory.setReceiveTimeout(properties.getBatch().getTimeout());
+		// factory.setBatchListener(properties.getBatch().isEnabled());
+		// factory.setConsumerBatchEnabled(properties.getBatch().isConsumerBatchEnabled());
 		factory.setMessageConverter(messageConverter());
 
-		factory.setErrorHandler(throwable -> {
-			log.error("배치 처리 중 오류 발생: {}", throwable.getMessage());
-		});
+		factory.setConcurrentConsumers(50);
+
+		factory.setErrorHandler(Throwable::printStackTrace);
 
 		factory.setDefaultRequeueRejected(properties.getBatch().isDefaultRequeueRejected());
 
