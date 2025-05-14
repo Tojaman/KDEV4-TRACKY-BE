@@ -26,13 +26,13 @@ public class RabbitMQConfig {
 		ConnectionFactory connectionFactory) {
 		SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
 		factory.setConnectionFactory(connectionFactory);
-		// factory.setBatchSize(properties.getBatch().getSize());
-		// factory.setReceiveTimeout(properties.getBatch().getTimeout());
-		// factory.setBatchListener(properties.getBatch().isEnabled());
-		// factory.setConsumerBatchEnabled(properties.getBatch().isConsumerBatchEnabled());
+		factory.setBatchSize(properties.getBatch().getSize());
+		factory.setReceiveTimeout(properties.getBatch().getTimeout());
+		factory.setBatchListener(properties.getBatch().isEnabled());
+		factory.setConsumerBatchEnabled(properties.getBatch().isConsumerBatchEnabled());
 		factory.setMessageConverter(messageConverter());
 
-		factory.setConcurrentConsumers(50);
+		factory.setConcurrentConsumers(10);
 
 		factory.setErrorHandler(Throwable::printStackTrace);
 
