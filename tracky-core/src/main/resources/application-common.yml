@@ -42,6 +42,26 @@ management:
   endpoint:
     prometheus:
       enabled: true
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        rabbitmq.consumed: true  # RabbitMQ 소비 메트릭에 대한 히스토그램 활성화
+    tags:
+      application: ${spring.application.name}
+    enable:
+      jvm: true
+      process: true
+      system: true
+      hikaricp: true
+      http: true
+      tomcat: true
+      rabbitmq: true  # RabbitMQ 메트릭 활성화
 
 logging:
   level:

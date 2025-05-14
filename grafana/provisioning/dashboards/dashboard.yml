@@ -1,12 +1,13 @@
 apiVersion: 1
 
 providers:
-  - name: 'K6 Dashboards'
+  - name: 'k6 Dashboard'
     orgId: 1
-    folder: ""
+    folder: ''
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10
+    allowUiUpdates: true
     options:
-      path: /dashboards/k6_Prometheus.json
-      foldersFromFilesStructure: true
+      path: /dashboards
+      foldersFromFilesStructure: false
