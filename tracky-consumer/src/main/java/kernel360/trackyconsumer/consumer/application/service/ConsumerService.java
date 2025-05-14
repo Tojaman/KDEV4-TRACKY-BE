@@ -58,6 +58,26 @@ public class ConsumerService {
 	}
 
 	@Transactional
+	public List<GpsHistoryEntity> receiveCycleInfo_bulk(GpsHistoryMessage request) {
+		List<CycleGpsRequest> cycleGpsRequestList = request.cList();
+
+		CarEntity car = carProvider.findByMdn(request.mdn()); // 캐싱 도입
+		DriveEntity drive = driveProvider.getDrive(car, request.oTime());
+
+		drive.skipCount(removeOverDistance(cycleGpsRequestList));
+
+		if (!cycleGpsRequestList.isEmpty()) {
+			processTimeDistance(cycleGpsRequestList, car);
+		}
+
+		return toGpsHistoryList(cycleGpsRequestList, drive);
+	}
+
+	public void saveAllGps(List<GpsHistoryEntity> gpsHistories) {
+		gpsHistoryProvider.saveAll(gpsHistories);
+	}
+
+	@Transactional
 	public void processOnMessage(CarOnOffRequest carOnOffRequest) {
 
 		LocationEntity location = LocationEntity.create(carOnOffRequest.gpsInfo().getLon(),
