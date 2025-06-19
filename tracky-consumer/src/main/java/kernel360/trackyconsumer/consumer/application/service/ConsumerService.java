@@ -2,13 +2,11 @@ package kernel360.trackyconsumer.consumer.application.service;
 
 import java.time.LocalDate;
 import java.util.List;
-
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import kernel360.trackyconsumer.consumer.application.dto.request.CarOnOffRequest;
 import kernel360.trackyconsumer.consumer.application.dto.request.CycleGpsRequest;
 import kernel360.trackyconsumer.consumer.application.dto.request.GpsHistoryMessage;
@@ -39,7 +37,6 @@ public class ConsumerService {
 	private final RentDomainProvider rentDomainProvider;
 	private final TimeDistanceDomainProvider timeDistanceDomainProvider;
 
-	// @Async("taskExecutor")
 	@Transactional
 	public void receiveCycleInfo(GpsHistoryMessage request) {
 		List<CycleGpsRequest> cycleGpsRequestList = request.cList();
@@ -162,13 +159,22 @@ public class ConsumerService {
 	}
 
 	@Retryable(
-		value = OptimisticLockingFailureException.class,
-		maxAttempts = 3,
-		backoff = @Backoff(delay = 100, multiplier = 2, maxDelay = 2000),
-		listeners = "retryListener"
+			value = OptimisticLockingFailureException.class,
+			maxAttempts = 3,
+			backoff = @Backoff(delay = 100, multiplier = 2, maxDelay = 2000),
+			listeners = "retryListener"
 	)
 	private void saveTimeDistance(LocalDate date, int hour, CarEntity car, double totalDistance, int seconds) {
 
+		// Optional<TimeDistanceEntity> timeDistance = timeDistanceDomainProvider.getTimeDistance(date, hour, car);
+
+		// if (timeDistance.isPresent()) {
+		// 	timeDistance.get().updateDistance(totalDistance, seconds);
+		// } else {
+		// 	timeDistanceDomainProvider.save(
+		// 		TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds)
+		// 	);
+		// }
 		timeDistanceDomainProvider.getTimeDistance(date, hour, car)
 			.ifPresentOrElse(
 				timeDistance -> timeDistance.updateDistance(totalDistance, seconds),
