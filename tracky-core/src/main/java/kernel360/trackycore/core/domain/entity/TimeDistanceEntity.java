@@ -51,6 +51,7 @@ public class TimeDistanceEntity extends DateBaseEntity {
 	private int seconds;
 
 	@Version
+	@Column(name = "version")
 	private Long version;
 
 	private TimeDistanceEntity(

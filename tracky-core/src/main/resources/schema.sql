@@ -166,7 +166,8 @@ CREATE TABLE IF NOT EXISTS `time_distance` (
     `seconds` int NOT NULL,
     `created_at` timestamp NOT NULL,
     `updated_at` timestamp NULL,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_time_distance_mdn_date_hour` (`mdn`, `date`, `hour`)
 );
 
 CREATE TABLE IF NOT EXISTS daily_statistic (

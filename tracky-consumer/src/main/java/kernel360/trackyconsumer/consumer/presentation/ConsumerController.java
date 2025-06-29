@@ -1,5 +1,6 @@
 package kernel360.trackyconsumer.consumer.presentation;
 
+import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,21 @@ import lombok.extern.slf4j.Slf4j;
 public class ConsumerController {
 
 	private final ConsumerService ConsumerService;
+	private final RabbitListenerEndpointRegistry registry;
+
+	@PostMapping("/start")
+	public ApiResponse<String> startConsumer() {
+		log.info("메시지 수신 시작");
+		registry.start();
+		return ApiResponse.success("Consumer started");
+	}
+
+	@PostMapping("/stop")
+	public ApiResponse<String> stopConsumer() {
+		log.info("메시지 수신 중지");
+		registry.stop();
+		return ApiResponse.success("Consumer stopped");
+	}
 
 	@PostMapping("/on")
 	public ApiResponse<String> postCarOn(@RequestBody CarOnOffRequest request) {

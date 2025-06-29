@@ -2,7 +2,6 @@ package kernel360.trackyconsumer.consumer.application.service;
 
 import java.time.LocalDate;
 import java.util.List;
-
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -38,20 +37,40 @@ public class ConsumerService {
 	private final RentDomainProvider rentDomainProvider;
 	private final TimeDistanceDomainProvider timeDistanceDomainProvider;
 
-	// @Async("taskExecutor")
 	@Transactional
 	public void receiveCycleInfo(GpsHistoryMessage request) {
-
 		List<CycleGpsRequest> cycleGpsRequestList = request.cList();
-		CarEntity car = carProvider.findByMdn(request.mdn());
+
+		CarEntity car = carProvider.findByMdn(request.mdn()); // 캐싱 도입
 		DriveEntity drive = driveProvider.getDrive(car, request.oTime());
 
 		drive.skipCount(removeOverDistance(cycleGpsRequestList));
 
-		if (!cycleGpsRequestList.isEmpty())
+		if (!cycleGpsRequestList.isEmpty()) {
 			processTimeDistance(cycleGpsRequestList, car);
+		}
 
 		List<GpsHistoryEntity> gpsHistories = toGpsHistoryList(cycleGpsRequestList, drive);
+		gpsHistoryProvider.saveAll(gpsHistories);
+	}
+
+	@Transactional
+	public List<GpsHistoryEntity> receiveCycleInfo_bulk(GpsHistoryMessage request) {
+		List<CycleGpsRequest> cycleGpsRequestList = request.cList();
+
+		CarEntity car = carProvider.findByMdn(request.mdn()); // 캐싱 도입
+		DriveEntity drive = driveProvider.getDrive(car, request.oTime());
+
+		drive.skipCount(removeOverDistance(cycleGpsRequestList));
+
+		if (!cycleGpsRequestList.isEmpty()) {
+			processTimeDistance(cycleGpsRequestList, car);
+		}
+
+		return toGpsHistoryList(cycleGpsRequestList, drive);
+	}
+
+	public void saveAllGps(List<GpsHistoryEntity> gpsHistories) {
 		gpsHistoryProvider.saveAll(gpsHistories);
 	}
 
@@ -135,25 +154,28 @@ public class ConsumerService {
 			seconds++;
 		}
 
-		log.info("세컨트스 : {}", seconds);
 		if (distance > 0.0)
 			saveTimeDistance(prevDate, prevHour, car, distance, seconds);
 	}
 
 	@Retryable(
-		value = OptimisticLockingFailureException.class,
-		maxAttempts = 3,
-		backoff = @Backoff(delay = 100, multiplier = 2, maxDelay = 2000),
-		listeners = "retryListener"
+			value = OptimisticLockingFailureException.class,
+			maxAttempts = 3,
+			backoff = @Backoff(delay = 100, multiplier = 2, maxDelay = 2000),
+			listeners = "retryListener"
 	)
 	private void saveTimeDistance(LocalDate date, int hour, CarEntity car, double totalDistance, int seconds) {
 
-		timeDistanceDomainProvider.getTimeDistance(date, hour, car)
-			.ifPresentOrElse(
-				timeDistance -> timeDistance.updateDistance(totalDistance, seconds),
-				() -> timeDistanceDomainProvider.save(
-					TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds)
-				)
-			);
+		// SELECT -> INSERT or UPDATE
+//		timeDistanceDomainProvider.getTimeDistance(date, hour, car)
+//			.ifPresentOrElse(
+//				timeDistance -> timeDistance.updateDistance(totalDistance, seconds),
+//				() -> timeDistanceDomainProvider.save(
+//					TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds)
+//				)
+//			);
+
+		// UPSERT
+		timeDistanceDomainProvider.upsert(TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds));
 	}
 }
