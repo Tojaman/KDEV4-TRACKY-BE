@@ -50,10 +50,6 @@ public class TimeDistanceEntity extends DateBaseEntity {
 	@Column(name = "seconds", nullable = false)
 	private int seconds;
 
-	@Version
-	@Column(name = "version")
-	private Long version;
-
 	private TimeDistanceEntity(
 		CarEntity car,
 		BizEntity biz,
