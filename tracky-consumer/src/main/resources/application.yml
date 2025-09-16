@@ -5,6 +5,9 @@ spring:
       - classpath:application-rabbitmq.yml
   application:
     name: tracky-consumer
+  datasource:
+    hikari:
+      maximum-pool-size: 7 # Consumer 모듈 전용 커넥션 풀 사이즈
   jpa:
     properties:
       hibernate:
