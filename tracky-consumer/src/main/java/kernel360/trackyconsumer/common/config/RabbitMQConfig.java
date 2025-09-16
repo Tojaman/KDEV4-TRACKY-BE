@@ -1,10 +1,14 @@
 package kernel360.trackyconsumer.common.config;
 
+import java.util.concurrent.Executor;
+
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +27,24 @@ public class RabbitMQConfig {
 		return new Jackson2JsonMessageConverter();
 	}
 
+	// RabbitMQ 리스너 전용 쓰레드 풀 생성
+	@Bean(name = "rabbitListenerExecutor")
+    public Executor rabbitListenerExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        // 코어와 최대 쓰레드 수를 7로 고정
+        executor.setCorePoolSize(7);
+        executor.setMaxPoolSize(7);
+        executor.setThreadNamePrefix("RabbitListener-"); // 쓰레드 이름 접두사 설정
+        executor.initialize();
+        log.info("RabbitMQ 리스너 전용 쓰레드 풀을 생성했습니다. (size=7)");
+        return executor;
+    }
+
 	@Bean
 	public SimpleRabbitListenerContainerFactory batchRabbitListenerContainerFactory(
-		ConnectionFactory connectionFactory) {
+		ConnectionFactory connectionFactory,
+		@Qualifier("rabbitListenerExecutor") Executor rabbitListenerExecutor) {
+
 		SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
 		factory.setConnectionFactory(connectionFactory);
 		factory.setBatchSize(properties.getBatch().getSize());
@@ -34,13 +53,16 @@ public class RabbitMQConfig {
 		factory.setConsumerBatchEnabled(properties.getBatch().isConsumerBatchEnabled());
 		factory.setMessageConverter(messageConverter());
 
-		// 리스너 스레드 설정 (배치 리스너에서도 20개의 컨슈머 사용)
+		// 리스너 컨테이너 스레드(I/O 쓰레드)
 		factory.setConcurrentConsumers(7);
-		factory.setMaxConcurrentConsumers(7);  // 최대 컨슈머도 동일하게 설정
+		factory.setMaxConcurrentConsumers(7);
+
+		// 직접 만든 전용 쓰레드 풀을 사용하도록 설정(처리 쓰레드)
+        factory.setTaskExecutor(rabbitListenerExecutor);
 
 		// 메트릭 측정을 위한 설정
-		factory.setMicrometerEnabled(true);  // Micrometer 메트릭 활성화
-		factory.setObservationEnabled(true); // 관찰 활성화 (Spring Boot 3.0 이상)
+		factory.setMicrometerEnabled(true);
+		factory.setObservationEnabled(true);
 
 		// 오류 핸들링 설정
 		factory.setErrorHandler(throwable -> {
@@ -49,29 +71,6 @@ public class RabbitMQConfig {
 
 		factory.setDefaultRequeueRejected(properties.getBatch().isDefaultRequeueRejected());
 
-		// log.info(
-		// 	"RabbitMQ 배치 리스너 설정: concurrentConsumers={}, batchSize={}, timeout={}, enabled={}, consumerBatchEnabled={}",
-		// 	10, properties.getBatch().getSize(), properties.getBatch().getTimeout(),
-		// 	properties.getBatch().isEnabled(), properties.getBatch().isConsumerBatchEnabled());
-
 		return factory;
 	}
-
-//	// 일반 리스너 컨테이너 팩토리도 정의하여 메트릭 수집 보장
-//	@Bean
-//	public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-//		ConnectionFactory connectionFactory) {
-//		SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-//		factory.setConnectionFactory(connectionFactory);
-//		factory.setMessageConverter(messageConverter());
-//		factory.setConcurrentConsumers(5);
-//		factory.setMaxConcurrentConsumers(10);
-//
-//		factory.setMicrometerEnabled(true);
-//		factory.setObservationEnabled(true);
-//
-//		log.info("RabbitMQ 일반 리스너 설정: concurrentConsumers=5, maxConcurrentConsumers=10");
-//
-//		return factory;
-//	}
 }
