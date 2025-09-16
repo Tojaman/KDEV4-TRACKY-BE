@@ -1,5 +1,7 @@
 package kernel360.trackyconsumer.consumer.application.service;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -22,11 +24,9 @@ import kernel360.trackycore.core.domain.entity.TimeDistanceEntity;
 import kernel360.trackycore.core.domain.provider.CarProvider;
 import kernel360.trackycore.core.domain.provider.GpsHistoryProvider;
 import kernel360.trackycore.core.domain.provider.LocationProvider;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ConsumerService {
 
@@ -36,6 +36,23 @@ public class ConsumerService {
 	private final GpsHistoryProvider gpsHistoryProvider;
 	private final RentDomainProvider rentDomainProvider;
 	private final TimeDistanceDomainProvider timeDistanceDomainProvider;
+	private final Timer timeDistanceProcessingTimer;
+
+	public ConsumerService(DriveDomainProvider driveProvider, CarProvider carProvider,
+		LocationProvider locationProvider, GpsHistoryProvider gpsHistoryProvider,
+		RentDomainProvider rentDomainProvider,
+		TimeDistanceDomainProvider timeDistanceDomainProvider, MeterRegistry meterRegistry) {
+		this.driveProvider = driveProvider;
+		this.carProvider = carProvider;
+		this.locationProvider = locationProvider;
+		this.gpsHistoryProvider = gpsHistoryProvider;
+		this.rentDomainProvider = rentDomainProvider;
+		this.timeDistanceDomainProvider = timeDistanceDomainProvider;
+		this.timeDistanceProcessingTimer = Timer.builder("time.distance.processing")
+			.description("시간/거리 계산 처리 시간")
+			.publishPercentileHistogram()
+			.register(meterRegistry);
+	}
 
 	@Transactional
 	public void receiveCycleInfo(GpsHistoryMessage request) {
@@ -158,24 +175,32 @@ public class ConsumerService {
 			saveTimeDistance(prevDate, prevHour, car, distance, seconds);
 	}
 
-	@Retryable(
-			value = OptimisticLockingFailureException.class,
-			maxAttempts = 3,
-			backoff = @Backoff(delay = 100, multiplier = 2, maxDelay = 2000),
-			listeners = "retryListener"
-	)
 	private void saveTimeDistance(LocalDate date, int hour, CarEntity car, double totalDistance, int seconds) {
 
 		// SELECT -> INSERT or UPDATE
-//		timeDistanceDomainProvider.getTimeDistance(date, hour, car)
-//			.ifPresentOrElse(
-//				timeDistance -> timeDistance.updateDistance(totalDistance, seconds),
-//				() -> timeDistanceDomainProvider.save(
-//					TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds)
-//				)
-//			);
+//		timeDistanceProcessingTimer.record(() -> {
+//			long start = System.currentTimeMillis();
+//			timeDistanceDomainProvider.getTimeDistance(date, hour, car)
+//				.ifPresentOrElse(
+//					timeDistance -> timeDistance.updateDistance(totalDistance, seconds),
+//					() -> timeDistanceDomainProvider.save(
+//						TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds)
+//					)
+//				);
+//			long end = System.currentTimeMillis();
+//			long duration = end - start;
+//			log.info("processTimeDistance 처리 완료 | 소요 시간: {}ms", duration);
+//		});
 
 		// UPSERT
-		timeDistanceDomainProvider.upsert(TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds));
+		timeDistanceProcessingTimer.record(() -> {
+			long start = System.currentTimeMillis();
+
+			timeDistanceDomainProvider.upsert(TimeDistanceEntity.create(car, car.getBiz(), date, hour, totalDistance, seconds));
+
+			long end = System.currentTimeMillis();
+			long duration = end - start;
+			log.info("processTimeDistance 처리 완료 | 소요 시간: {}ms", duration);
+		});
 	}
 }
