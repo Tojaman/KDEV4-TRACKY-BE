@@ -2,12 +2,17 @@ package kernel360.trackyconsumer.common.config;
 
 import java.util.concurrent.Executor;
 
+import org.aopalliance.aop.Advice;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
+import org.springframework.retry.interceptor.RetryOperationsInterceptor;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -43,7 +48,8 @@ public class RabbitMQConfig {
 	@Bean
 	public SimpleRabbitListenerContainerFactory batchRabbitListenerContainerFactory(
 		ConnectionFactory connectionFactory,
-		@Qualifier("rabbitListenerExecutor") Executor rabbitListenerExecutor) {
+		@Qualifier("rabbitListenerExecutor") Executor rabbitListenerExecutor,
+		RetryOperationsInterceptor retryInterceptor) {
 
 		SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
 		factory.setConnectionFactory(connectionFactory);
@@ -64,13 +70,36 @@ public class RabbitMQConfig {
 		factory.setMicrometerEnabled(true);
 		factory.setObservationEnabled(true);
 
-		// 오류 핸들링 설정
+		// 오류 핸들링 및 재시도 설정
+		factory.setAdviceChain(new Advice[] {retryInterceptor});
 		factory.setErrorHandler(throwable -> {
-			log.error("RabbitMQ 메시지 처리 중 오류 발생: {}", throwable.getMessage(), throwable);
+			log.error("RabbitMQ 메시지 처리 중 최종 실패: {}", throwable.getMessage(), throwable);
 		});
 
 		factory.setDefaultRequeueRejected(properties.getBatch().isDefaultRequeueRejected());
 
 		return factory;
+	}
+
+	@Bean
+	public RetryOperationsInterceptor retryInterceptor() {
+		RetryTemplate retryTemplate = new RetryTemplate();
+
+		// 재시도 정책 설정
+		SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+		retryPolicy.setMaxAttempts(3);
+		retryTemplate.setRetryPolicy(retryPolicy);
+
+		// 재시도 간격 설정(Jitter)
+		ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
+		backOffPolicy.setInitialInterval(500);
+		backOffPolicy.setMultiplier(1.5);
+		backOffPolicy.setMaxInterval(15000);
+		retryTemplate.setBackOffPolicy(backOffPolicy);
+
+		RetryOperationsInterceptor interceptor = new RetryOperationsInterceptor();
+		interceptor.setRetryOperations(retryTemplate);
+
+		return interceptor;
 	}
 }
