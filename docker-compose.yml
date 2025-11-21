@@ -110,6 +110,28 @@ services:
     networks:
       - tracky-network
 
+  tracky-batch:
+    build:
+      context: ./tracky-batch
+      dockerfile: Dockerfile
+    container_name: tracky-batch
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2g
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tracky-network
+
 networks:
   tracky-network:
     driver: bridge
