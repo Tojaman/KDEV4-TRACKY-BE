@@ -7,13 +7,17 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 
 @Slf4j
 @Configuration
@@ -21,6 +25,18 @@ import lombok.extern.slf4j.Slf4j;
 public class RabbitMQConfig {
 
 	private final RabbitMQProperties properties;
+	@Bean
+	public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+		return new RabbitAdmin(connectionFactory);
+	}
+
+	@EventListener(ApplicationReadyEvent.class)
+	public void init(ApplicationReadyEvent event) {
+		// 이벤트에서 ApplicationContext를 통해 RabbitAdmin을 가져와 초기화
+		RabbitAdmin admin = event.getApplicationContext().getBean(RabbitAdmin.class);
+		log.info("RabbitMQ 구조 강제 초기화 실행 (RabbitAdmin.initialize)");
+		admin.initialize();
+	}
 
 	@Bean
 	public TopicExchange exchange() {
@@ -30,6 +46,11 @@ public class RabbitMQConfig {
 	@Bean
 	public FanoutExchange fanoutExchange() {
 		return new FanoutExchange(properties.getExchange().getCycleInfo());
+	}
+
+	@Bean
+	public TopicExchange deadLetterExchange() {
+		return new TopicExchange(properties.getExchange().getDlx());
 	}
 
 	@Bean
@@ -74,6 +95,11 @@ public class RabbitMQConfig {
 	@Bean
 	public Binding offBinding(Queue onOffQueue, TopicExchange exchange) {
 		return BindingBuilder.bind(onOffQueue).to(exchange).with(properties.getRouting().getOffKey());
+	}
+
+	@Bean
+	public Binding deadLetterBinding(Queue deadLetterQueue, TopicExchange deadLetterExchange) {
+		return BindingBuilder.bind(deadLetterQueue).to(deadLetterExchange).with(properties.getRouting().getDeadLetterKey());
 	}
 
 	@Bean
