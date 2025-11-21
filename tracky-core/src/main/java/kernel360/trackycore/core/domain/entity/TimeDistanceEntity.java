@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
 import kernel360.trackycore.core.domain.entity.base.DateBaseEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
