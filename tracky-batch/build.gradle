@@ -1,0 +1,30 @@
+dependencies {
+    // Spring Batch Core
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+
+    // Data, DB 관련
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // QueryDSL
+    implementation "com.querydsl:querydsl-core:5.0.0"
+    implementation "com.querydsl:querydsl-jpa:5.0.0:jakarta"
+
+    // Project Core 모듈 의존성
+    implementation project(':tracky-core')
+
+    // Test
+    testImplementation 'org.springframework.batch:spring-batch-test'
+}
+
+// Batch 애플리케이션은 실행 가능한 Jar 파일로 빌드되어야 하므로, bootJar를 활성화합니다.
+// 루트 build.gradle에서 bootJar를 비활성화했기 때문에, 여기에서 다시 활성화해줍니다.
+bootJar {
+    enabled = true
+}
+
+// 일반 Jar 빌드도 활성화합니다.
+jar {
+    enabled = true
+}
