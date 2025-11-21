@@ -66,3 +66,6 @@ gradle-app.setting
 .vscode/settings.json
 
 **/bin
+
+/stressTest/
+/문서/
