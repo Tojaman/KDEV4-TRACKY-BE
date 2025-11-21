@@ -1,0 +1,24 @@
+spring:
+  config:
+    import:
+      - classpath:application-common.yml
+
+  application:
+    name: tracky-batch
+
+  batch:
+    # Spring Boot 애플리케이션 시작 시 Batch Job 자동 실행 방지
+    # Jenkins를 통해 Job 명시적으로 실행
+    job:
+       enabled: false
+    jdbc:
+      initialize-schema: never
+
+  # 웹 서버를 띄우지 않도록 설정
+  main:
+    web-application-type: none
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql: trace
