@@ -38,18 +38,14 @@ public class MessageListener {
 	public void receiveCarOnOffMessage(@Payload CarOnOffRequest message,
 		@Header("amqp_receivedRoutingKey") String routingKey) {
 
-		try {
-			switch (routingKey) {
-				case "onKey":
-					consumerService.processOnMessage(message);
-					break;
-				case "offKey":
-					consumerService.processOffMessage(message);
-					break;
-			}
-		} catch (Exception e) {
-			log.error("Error processing on-off message: {}", e.getMessage());
-		}
+        switch (routingKey) {
+            case "onKey":
+                consumerService.processOnMessage(message);
+                break;
+            case "offKey":
+                consumerService.processOffMessage(message);
+                break;
+        }
 	}
 
 	// GPS 정보 처리 큐
@@ -60,11 +56,7 @@ public class MessageListener {
 			long start = System.currentTimeMillis();
             List<GpsHistoryEntity> gpses = new ArrayList<>();
             for (GpsHistoryMessage message : messages) {
-                try {
-                    gpses.addAll(consumerService.receiveCycleInfo_bulk(message));
-                } catch (Exception e) {
-                    log.error("GPS 메시지 처리 중 오류 발생: {}", e.getMessage());
-                }
+                gpses.addAll(consumerService.receiveCycleInfo_bulk(message));
             }
             if (!gpses.isEmpty()) {
                 consumerService.saveAllGps(gpses);
